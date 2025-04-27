@@ -29,7 +29,7 @@ def home():
 def run():
     while True:
         try:
-            app.run(host='0.0.0.0', port=5000)
+            app.run(host='0.0.0.0', port=4000)
         except Exception as e:
             logger.error(f"Server error: {e}")
             time.sleep(10)
