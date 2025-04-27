@@ -16,6 +16,5 @@ charset-normalizer
 chardet
 certifi
 blinker
-Werkzeug
 requests
 Jinja2
