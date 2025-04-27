@@ -133,5 +133,5 @@ if __name__ == "__main__":
     bot.remove_webhook()  # Remove any existing webhook
     bot.set_webhook(url=webhook_url)
 
-    # Run Flask App on Port 4000
+    # Run Flask App on Port 10000
     app.run(host="0.0.0.0", port=10000)
