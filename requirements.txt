@@ -5,3 +5,17 @@ reportlab
 python-barcode
 Werkzeug
 gunicorn
+urllib3
+pillow
+packaging
+MarkupSafe
+itsdangerous
+idna
+click
+charset-normalizer
+chardet
+certifi
+blinker
+Werkzeug
+requests
+Jinja2
