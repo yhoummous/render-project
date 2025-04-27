@@ -1,0 +1,7 @@
+pyTelegramBotAPI
+qrcode
+Flask
+reportlab
+python-barcode
+Werkzeug
+gunicorn
