@@ -134,4 +134,4 @@ if __name__ == "__main__":
     bot.set_webhook(url=webhook_url)
 
     # Run Flask App on Port 4000
-    app.run(host="0.0.0.0", port=4000)
+    app.run(host="0.0.0.0", port=10000)
