@@ -1,64 +1,48 @@
 import os
-import time
-import logging
 import telebot
-import qrcode
-from flask import Flask
-from threading import Thread
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import portrait
-from reportlab.lib.units import cm
-from barcode import Code128
-from barcode.writer import ImageWriter
-from telebot import types
-from werkzeug.utils import secure_filename
-from textwrap import wrap
+from flask import Flask, request
+import logging
 
 # === Configure Logging ===
 logging.basicConfig(filename='bot.log', level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# === Flask App for Keep-Alive Web Server ===
+# === Flask Web Server Setup ===
 app = Flask(__name__)
+
+API_TOKEN = os.getenv("API_TOKEN")  # Your bot's API token
+bot = telebot.TeleBot(API_TOKEN)
 
 @app.route('/')
 def home():
     return "🚀 Fujitec Barcode Bot is alive!"
 
-def run():
-    while True:
-        try:
-            app.run(host='0.0.0.0', port=4000)
-        except Exception as e:
-            logger.error(f"Server error: {e}")
-            time.sleep(10)
-
-def keep_alive():
-    Thread(target=run, daemon=True).start()
+# === Handle Webhook Requests ===
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    json_str = request.get_data().decode("UTF-8")
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return "OK"
 
 # === Bot Configuration ===
-API_TOKEN = os.getenv("API_TOKEN")  # Ensure you properly access the token
-bot = telebot.TeleBot(API_TOKEN)
-
-# === /start Command ===
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     try:
-        logo_path = "logo.png"  # Replace with your actual logo image path
-        with open(logo_path, 'rb') as logo:
-            bot.send_photo(message.chat.id, logo, caption="👋 <b>Welcome to Fujitec Barcode Bot!</b>\n\n"
-                                                           "🔹 Easily create professional barcode stickers for your spare parts.\n\n"
-                                                           "<b>📄 Manual Entry:</b>\n"
-                                                           "Send text like:\n"
-                                                           "<code>123456789012, Motor Gear, R12</code>\n"
-                                                           "<code>987654321098, Brake Unit, R34</code>\n\n"
-                                                           "✅ After sending, the bot will generate and send you a ready-to-print PDF.\n\n"
-                                                           "⚡ Let's get started!\n\n"
-                                                           "For Support Call @BDM_IT", parse_mode="HTML")
+        # Send welcome message
+        bot.send_message(message.chat.id, "👋 <b>Welcome to Fujitec Barcode Bot!</b>\n\n"
+                                         "🔹 Easily create professional barcode stickers for your spare parts.\n\n"
+                                         "<b>📄 Manual Entry:</b>\n"
+                                         "Send text like:\n"
+                                         "<code>123456789012, Motor Gear, R12</code>\n"
+                                         "<code>987654321098, Brake Unit, R34</code>\n\n"
+                                         "✅ After sending, the bot will generate and send you a ready-to-print PDF.\n\n"
+                                         "⚡ Let's get started!\n\n"
+                                         "For Support Call @BDM_IT", parse_mode="HTML")
     except Exception as e:
         logger.error(f"Error sending welcome message: {e}")
-        bot.reply_to(message, "❌ Error: Could not send the welcome message with logo.")
+        bot.reply_to(message, "❌ Error: Could not send the welcome message.")
 
 # === Handle Manual Entry ===
 @bot.message_handler(func=lambda message: True)
@@ -73,14 +57,20 @@ def handle_text(message):
                 return
             data.append(parts)
 
+        # Send the "Generating PDF..." message
         generating_msg = bot.reply_to(message, "⏳ Generating your PDF...")
 
+        # Generate the PDF
         pdf_path = generate_pdf(data)
 
+        # Send the PDF
         with open(pdf_path, 'rb') as pdf_file:
             bot.send_document(message.chat.id, pdf_file)
 
+        # Clean up generated PDF file
         os.remove(pdf_path)
+
+        # Delete the "Generating PDF..." message
         bot.delete_message(message.chat.id, generating_msg.message_id)
 
     except Exception as e:
@@ -136,10 +126,12 @@ def generate_pdf(labels_data):
     c.save()
     return pdf_file_name
 
-# === Run Bot ===
-keep_alive()
-bot.remove_webhook()
-bot.polling(none_stop=True)
+# === Set Webhook for Render ===
+if __name__ == "__main__":
+    # Set webhook URL (for Render)
+    webhook_url = "https://fujitec-bot.onrender.com/webhook"
+    bot.remove_webhook()  # Remove any existing webhook
+    bot.set_webhook(url=webhook_url)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    # Run Flask App on Port 4000
+    app.run(host="0.0.0.0", port=4000)
